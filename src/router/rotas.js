@@ -1,5 +1,7 @@
 const express = require("express");
+
 const rotaUsuario = require("../controladores/usuario");
+const verificarUsuarioLogado = require("../intermediarios/autenticacao");
 
 const verifica = require("../intermediarios/validacaoDeDadosEnviados");
 const rotas = express();
@@ -12,7 +14,12 @@ rotas.post(
   verifica.senha,
   rotaUsuario.cadastrarUsuario
 );
+rotas.post("/login", verifica.autLogin, rotaUsuario.loginUsuario);
 
-rotas.post("/login", verifica.email, verifica.senha);
+rotas.use(verificarUsuarioLogado);
+
+rotas.get("/usuario", rotaUsuario.detalharUsuario);
+rotas.put("/usuario", rotaUsuario.atualizarUsuario);
+rotas.delete("/usuario", rotaUsuario.excluirConta);
 
 module.exports = rotas;

@@ -6,9 +6,9 @@ require("dotenv").config();
 const rotaUsuario = {
   async cadastrarUsuario(req, res) {
     const { nome, telefone, email, senha } = req.body;
-    console.log(nome, telefone, email, senha);
     try {
       const criptografiSenha = await bcrypt.hash(senha, 10);
+
       const usuarioCadastrado = await pool.query(
         "insert into usuarios (nome, telefone, email, senha) values($1, $2, $3, $4)returning *",
         [nome, telefone, email, criptografiSenha]
@@ -22,7 +22,10 @@ const rotaUsuario = {
 
       return res.status(201).json(usuarioSemSenha);
     } catch (error) {
-      return res.status(500).json(error.message);
+      return res.status(500).json({
+        mensagem:
+          "Já existe um usuario cadastrado com o telefone ou email informado",
+      });
     }
   },
 
@@ -32,7 +35,7 @@ const rotaUsuario = {
     try {
       const consultaUSuario = await pool.query(
         "select * from usuarios where telefone = $1 or email = $2",
-        [email]
+        [telefone, email]
       );
 
       if (!consultaUSuario.rows[0]) {
@@ -57,8 +60,9 @@ const rotaUsuario = {
       return res.status(200).json({
         usuario: {
           id: consultaUSuario.rows[0].id,
+          telefone: consultaUSuario.rows[0].telefone,
           nome: consultaUSuario.rows[0].nome,
-          email,
+          email: consultaUSuario.rows[0].email,
         },
         token,
       });
@@ -76,6 +80,7 @@ const rotaUsuario = {
       const usuarioSemSenha = {
         id: usuario.rows[0].id,
         nome: usuario.rows[0].nome,
+        telefone: usuario.rows[0].telefone,
         email: usuario.rows[0].email,
       };
       return res.status(200).json(usuarioSemSenha);
@@ -103,6 +108,34 @@ const rotaUsuario = {
         mensagem:
           "O e-mail informado ou telefone já está sendo utilizado por outro usuário.",
       });
+    }
+  },
+  async excluirConta(req, res) {
+    const usuario = req.usuario;
+    const { senha } = req.body;
+    try {
+      const consultaUSuario = await pool.query(
+        `select * from usuarios where id = $1`,
+        [usuario.id]
+      );
+
+      if (!consultaUSuario.rows[0]) {
+        return res.status(400).json({ message: "usuario ou senha invalido" });
+      }
+
+      const validarLogin = await bcrypt.compare(
+        senha,
+        consultaUSuario.rows[0].senha
+      );
+
+      const deletando = await pool.query(`delete from usuarios where id =$1`, [
+        usuario.id,
+      ]);
+      return res.status(200).json({
+        mensagem: "Foi uma pena que tenha decidido excluir sua conta :(",
+      });
+    } catch (error) {
+      return res.status(500).json(error.mensagem);
     }
   },
 };

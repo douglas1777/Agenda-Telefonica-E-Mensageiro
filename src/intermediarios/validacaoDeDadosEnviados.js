@@ -43,5 +43,18 @@ const verifica = {
       return res.status(500).json(error.mensagem);
     }
   },
+  autLogin(req, res, next) {
+    const { telefone, email } = req.body;
+    try {
+      if (!telefone && !email) {
+        return res
+          .status(401)
+          .json({ mensagem: "Efetue o login com o email ou a senha" });
+      }
+      next();
+    } catch (error) {
+      return res.status(500).json(error.mensagem);
+    }
+  },
 };
 module.exports = verifica;
